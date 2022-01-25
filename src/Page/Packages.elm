@@ -20,6 +20,7 @@ import Html
     exposing
         ( Html
         , a
+        , code
         , div
         , em
         , h4
@@ -65,6 +66,7 @@ type alias ResultItemSource =
     { attr_name : String
     , pname : String
     , pversion : String
+    , outputs : List String
     , description : Maybe String
     , longDescription : Maybe String
     , licenses : List ResultPackageLicense
@@ -352,13 +354,26 @@ viewResultItem channel showInstallDetails show item =
                                         ( Just fullName, Just url ) ->
                                             Just (createShortDetailsItem fullName url)
                                 )
-                            |> List.intersperse (text ", ")
-                            |> (\x -> [ li [] (List.append [ text "Licenses: " ] x) ])
+                            |> (\x ->
+                                if x == [] then
+                                    []
+                                else
+                                    [ li [] (List.append [ text "Licenses: " ] (List.intersperse (text ", ") x)) ])
+                        )
+                    |> List.append
+                        (if item.source.outputs == [] then
+                            []
+                         else
+                            [ text "Outputs: "
+                            , li [] (
+                                item.source.outputs
+                                     |> List.map (\o -> code [] [ text o ])
+                                     |> List.intersperse (text " "))
+                            ]
                         )
                     |> List.append
                         (if item.source.pversion == "" then
                             []
-
                          else
                             [ text "Version: "
                             , li [] [ text item.source.pversion ]
@@ -597,7 +612,6 @@ viewResultItem channel showInstallDetails show item =
                             ]
                             [ text item.source.attr_name ]
                       ]
-                    
 
                 _ ->
                     [ a
@@ -790,6 +804,7 @@ decodeResultItemSource =
         |> Json.Decode.Pipeline.required "package_attr_name" Json.Decode.string
         |> Json.Decode.Pipeline.required "package_pname" Json.Decode.string
         |> Json.Decode.Pipeline.required "package_pversion" Json.Decode.string
+        |> Json.Decode.Pipeline.required "package_outputs" (Json.Decode.list Json.Decode.string)
         |> Json.Decode.Pipeline.required "package_description" (Json.Decode.nullable Json.Decode.string)
         |> Json.Decode.Pipeline.required "package_longDescription" (Json.Decode.nullable Json.Decode.string)
         |> Json.Decode.Pipeline.required "package_license" (Json.Decode.list decodeResultPackageLicense)
